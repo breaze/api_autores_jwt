@@ -1,0 +1,177 @@
+================================================================
+  GUÍA DE ORDEN DE CREACIÓN - PrimeraApiCasa (Biblioteca API)
+================================================================
+Base package: com.breaze.PrimeraApiCasa
+
+----------------------------------------------------------------
+PASO 1 — CONFIGURACIÓN DEL PROYECTO
+----------------------------------------------------------------
+Antes de crear cualquier clase, configurar el proyecto base:
+
+  - Crear proyecto en Spring Initializr con las dependencias:
+      Spring Web, Spring Data JPA, Spring Security,
+      MySQL Driver, Lombok, DevTools
+
+  - Editar pom.xml y agregar la dependencia de JJWT:
+      io.jsonwebtoken:jjwt-api
+      io.jsonwebtoken:jjwt-impl
+      io.jsonwebtoken:jjwt-jackson
+
+  - Configurar src/main/resources/application.properties:
+      spring.datasource.url
+      spring.datasource.username
+      spring.datasource.password
+      server.servlet.context-path
+      jwt.secret
+      jwt.expiration
+      server.error.include-stacktrace=never
+      server.error.include-message=never
+
+----------------------------------------------------------------
+PASO 2 — ENTIDADES (package: entities)
+----------------------------------------------------------------
+Agrupadas por dominio. Cada @Embeddable se crea justo antes
+de la entidad que lo usa.
+
+  >> Dominio de seguridad
+  2.1  Rol.java                — entidad simple, sin dependencias
+  2.2  Usuario.java            — entidad simple, sin dependencias
+  2.3  UsuarioRolId.java       — @Embeddable, clave compuesta de UsuarioRol
+  2.4  UsuarioRol.java         — depende de Rol, Usuario y UsuarioRolId
+
+  >> Dominio de biblioteca
+  2.5  Autor.java              — entidad simple, sin dependencias
+  2.6  Categoria.java          — entidad simple, sin dependencias
+  2.7  Libro.java              — depende de Autor
+  2.8  DetalleLibro.java       — depende de Libro
+  2.9  LibroCategoriaId.java   — @Embeddable, clave compuesta de LibroCategoria
+  2.10 LibroCategoria.java     — depende de Libro, Categoria y LibroCategoriaId
+
+----------------------------------------------------------------
+PASO 3 — SERVICIO: ROL
+----------------------------------------------------------------
+package repository  →  RolRepository.java
+package dto         →  RolCreateRequest.java
+                    →  RolUpdateRequest.java
+                    →  RolResponse.java
+package services    →  IRolService.java
+package services/impl → RolServiceImpl.java
+package controllers →  RolController.java
+
+----------------------------------------------------------------
+PASO 4 — SERVICIO: USUARIO
+----------------------------------------------------------------
+package repository  →  UsuarioRepository.java
+package services    →  IUsuarioService.java
+package services/impl → UsuarioServiceImpl.java
+
+  Nota: Usuario no tiene controller propio. Su gestión se
+  hace a través del flujo de autenticación (paso 9).
+
+----------------------------------------------------------------
+PASO 5 — SERVICIO: USUARIO-ROL
+----------------------------------------------------------------
+package repository  →  UsuarioRolRepository.java
+package dto         →  UsuarioRolCreateRequest.java
+                    →  UsuarioRolResponse.java
+package services    →  IUsuarioRolService.java
+package services/impl → UsuarioRolServiceImpl.java
+package controllers →  UsuarioRolController.java
+
+----------------------------------------------------------------
+PASO 6 — SERVICIO: AUTOR
+----------------------------------------------------------------
+package repository  →  AutorRepository.java
+package dto         →  AutorCreateRequest.java
+                    →  AutorUpdateRequest.java
+                    →  AutorResponse.java
+package services    →  IAutorService.java
+package services/impl → AutorServiceImpl.java
+package controllers →  AutorController.java
+
+----------------------------------------------------------------
+PASO 7 — SERVICIO: CATEGORIA
+----------------------------------------------------------------
+package repository  →  CategoriaRepository.java
+package dto         →  CategoriaCreateRequest.java
+                    →  CategoriaUpdateRequest.java
+                    →  CategoriaResponse.java
+package services    →  ICategoriaService.java
+package services/impl → CategoriaServiceImpl.java
+package controllers →  CategoriaController.java
+
+----------------------------------------------------------------
+PASO 8 — SERVICIO: LIBRO
+----------------------------------------------------------------
+package repository  →  LibroRepository.java
+package dto         →  LibroCreateRequest.java
+                    →  LibroUpdateRequest.java
+                    →  LibroResponse.java
+package services    →  ILibroService.java
+package services/impl → LibroServiceImpl.java
+package controllers →  LibroController.java
+
+----------------------------------------------------------------
+PASO 9 — SERVICIO: DETALLE LIBRO
+----------------------------------------------------------------
+package repository  →  DetalleLibroRepository.java
+package dto         →  DetalleLibroCreateRequest.java
+                    →  DetalleLibroUpdateRequest.java
+                    →  DetalleLibroResponse.java
+package services    →  IDetalleLibroService.java
+package services/impl → DetalleLibroServiceImpl.java
+package controllers →  DetalleLibroController.java
+
+----------------------------------------------------------------
+PASO 10 — SERVICIO: LIBRO-CATEGORIA
+----------------------------------------------------------------
+package repository  →  LibroCategoriaRepository.java
+package dto         →  LibroCategoriaCreateRequest.java
+                    →  LibroCategoriaResponse.java
+package services    →  ILibroCategoriaService.java
+package services/impl → LibroCategoriaServiceImpl.java
+package controllers →  LibroCategoriaController.java
+
+----------------------------------------------------------------
+PASO 11 — SEGURIDAD Y AUTENTICACIÓN
+----------------------------------------------------------------
+Agregar al final porque depende de entidades, repositorios
+y servicios ya creados.
+
+  >> Utilidades JWT
+  package security    →  JwtUtil.java
+                      →  UserDetailsServiceImpl.java
+                      →  JwtFilter.java
+
+  >> Servicio de autenticación
+  package dto         →  RegisterRequest.java
+                      →  LoginRequest.java
+                      →  AuthResponse.java
+  package services    →  IAuthService.java
+  package services/impl → AuthServiceImpl.java
+  package controllers →  AuthController.java
+
+  >> Configuración de seguridad
+  package security    →  SecurityConfig.java
+
+  >> Manejo de excepciones
+  package controllers →  GlobalExceptionHandler.java
+
+----------------------------------------------------------------
+NOTAS IMPORTANTES
+----------------------------------------------------------------
+
+- Antes de arrancar la aplicación, asegurarse de insertar en la
+  base de datos los roles iniciales:
+      INSERT INTO rol (nombre) VALUES ('USER');
+      INSERT INTO rol (nombre) VALUES ('ADMIN');
+
+- El orden de dependencias por capa dentro de cada servicio es:
+      entity → repository → dto → interface → impl → controller
+
+- Los pasos 3 al 10 son independientes entre sí (salvo que
+  LibroController depende de AutorRepository internamente),
+  por lo que el orden entre ellos es flexible siempre que
+  Autor y Categoria existan antes que Libro y LibroCategoria.
+
+================================================================

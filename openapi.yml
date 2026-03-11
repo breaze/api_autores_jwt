@@ -1,0 +1,1239 @@
+openapi: 3.0.3
+info:
+  title: PrimeraApiCasa - Biblioteca API
+  description: |
+    REST API para gestión de una biblioteca. Usa autenticación JWT.
+
+    **Roles:**
+    - `USER` — puede consultar el catálogo (autores, libros, detalles, categorías, libro-categorías)
+    - `ADMIN` — acceso completo, incluyendo escritura en el catálogo y gestión de roles y usuarios
+
+    **Autenticación:** Los endpoints protegidos requieren el header `Authorization: Bearer <token>`.
+    El token se obtiene en `/auth/login` o `/auth/register`.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080/micro
+    description: Servidor local
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Auth
+    description: Registro e inicio de sesión (públicos)
+  - name: Autores
+    description: Gestión de autores
+  - name: Libros
+    description: Gestión de libros
+  - name: Detalles
+    description: Detalles de libros (ISBN, páginas, idioma)
+  - name: Categorias
+    description: Gestión de categorías
+  - name: LibroCategorias
+    description: Asociación entre libros y categorías
+  - name: Roles
+    description: Gestión de roles (solo ADMIN)
+  - name: UsuarioRoles
+    description: Asignación de roles a usuarios (solo ADMIN)
+
+paths:
+
+  # ─── AUTH ───────────────────────────────────────────────────────────────────
+
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Registrar nuevo usuario
+      description: Crea un usuario nuevo y devuelve un JWT. No requiere autenticación.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+            example:
+              username: juan123
+              password: secreto123
+      responses:
+        '201':
+          description: Usuario creado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: El nombre de usuario ya existe
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Iniciar sesión
+      description: Autentica al usuario y devuelve un JWT. No requiere autenticación.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            example:
+              username: juan123
+              password: secreto123
+      responses:
+        '200':
+          description: Autenticación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Credenciales incorrectas
+
+  # ─── AUTORES ─────────────────────────────────────────────────────────────────
+
+  /autores:
+    get:
+      tags: [Autores]
+      summary: Listar todos los autores
+      description: Requiere rol `USER` o `ADMIN`.
+      responses:
+        '200':
+          description: Lista de autores
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AutorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    post:
+      tags: [Autores]
+      summary: Crear un autor
+      description: Requiere rol `ADMIN`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AutorCreateRequest'
+            example:
+              nombre: Gabriel García Márquez
+              nacionalidad: Colombiana
+      responses:
+        '201':
+          description: Autor creado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AutorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /autores/{id}:
+    get:
+      tags: [Autores]
+      summary: Obtener autor por ID
+      description: Requiere rol `USER` o `ADMIN`.
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Autor encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AutorResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    put:
+      tags: [Autores]
+      summary: Actualizar un autor
+      description: Requiere rol `ADMIN`.
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AutorCreateRequest'
+            example:
+              nombre: Gabriel García Márquez
+              nacionalidad: Colombiana
+      responses:
+        '200':
+          description: Autor actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AutorResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    delete:
+      tags: [Autores]
+      summary: Eliminar un autor
+      description: Requiere rol `ADMIN`.
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '204':
+          description: Autor eliminado
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  # ─── LIBROS ──────────────────────────────────────────────────────────────────
+
+  /libros:
+    get:
+      tags: [Libros]
+      summary: Listar todos los libros
+      description: Requiere rol `USER` o `ADMIN`.
+      responses:
+        '200':
+          description: Lista de libros
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LibroResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    post:
+      tags: [Libros]
+      summary: Crear un libro
+      description: Requiere rol `ADMIN`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LibroCreateRequest'
+            example:
+              titulo: Cien años de soledad
+              anioPublicacion: 1967
+              autorId: 1
+      responses:
+        '201':
+          description: Libro creado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LibroResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /libros/{id}:
+    get:
+      tags: [Libros]
+      summary: Obtener libro por ID
+      description: Requiere rol `USER` o `ADMIN`.
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Libro encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LibroResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    put:
+      tags: [Libros]
+      summary: Actualizar un libro
+      description: Requiere rol `ADMIN`.
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LibroCreateRequest'
+            example:
+              titulo: Cien años de soledad
+              anioPublicacion: 1967
+              autorId: 1
+      responses:
+        '200':
+          description: Libro actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LibroResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    delete:
+      tags: [Libros]
+      summary: Eliminar un libro
+      description: Requiere rol `ADMIN`.
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '204':
+          description: Libro eliminado
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /libros/autor/{autorId}:
+    get:
+      tags: [Libros]
+      summary: Listar libros por autor
+      description: Requiere rol `USER` o `ADMIN`.
+      parameters:
+        - name: autorId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+          description: ID del autor
+      responses:
+        '200':
+          description: Lista de libros del autor
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LibroResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  # ─── DETALLES ────────────────────────────────────────────────────────────────
+
+  /detalles/{id}:
+    get:
+      tags: [Detalles]
+      summary: Obtener detalle de libro por ID
+      description: Requiere rol `USER` o `ADMIN`.
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Detalle encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DetalleLibroResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    put:
+      tags: [Detalles]
+      summary: Actualizar detalle de libro
+      description: Requiere rol `ADMIN`.
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DetalleLibroUpdateRequest'
+            example:
+              isbn: 978-3-16-148410-0
+              numPaginas: 432
+              idioma: Español
+      responses:
+        '200':
+          description: Detalle actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DetalleLibroResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    delete:
+      tags: [Detalles]
+      summary: Eliminar detalle de libro
+      description: Requiere rol `ADMIN`.
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '204':
+          description: Detalle eliminado
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /detalles/libro/{libroId}:
+    get:
+      tags: [Detalles]
+      summary: Obtener detalle por ID de libro
+      description: Requiere rol `USER` o `ADMIN`.
+      parameters:
+        - name: libroId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+          description: ID del libro
+      responses:
+        '200':
+          description: Detalle encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DetalleLibroResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /detalles:
+    post:
+      tags: [Detalles]
+      summary: Crear detalle de libro
+      description: Requiere rol `ADMIN`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DetalleLibroCreateRequest'
+            example:
+              isbn: 978-3-16-148410-0
+              numPaginas: 432
+              idioma: Español
+              libroId: 1
+      responses:
+        '201':
+          description: Detalle creado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DetalleLibroResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  # ─── CATEGORIAS ──────────────────────────────────────────────────────────────
+
+  /categorias:
+    get:
+      tags: [Categorias]
+      summary: Listar todas las categorías
+      description: Requiere rol `USER` o `ADMIN`.
+      responses:
+        '200':
+          description: Lista de categorías
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CategoriaResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    post:
+      tags: [Categorias]
+      summary: Crear una categoría
+      description: Requiere rol `ADMIN`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoriaCreateRequest'
+            example:
+              nombre: Novela
+      responses:
+        '201':
+          description: Categoría creada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoriaResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /categorias/{id}:
+    get:
+      tags: [Categorias]
+      summary: Obtener categoría por ID
+      description: Requiere rol `USER` o `ADMIN`.
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Categoría encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoriaResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    put:
+      tags: [Categorias]
+      summary: Actualizar una categoría
+      description: Requiere rol `ADMIN`.
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoriaCreateRequest'
+            example:
+              nombre: Ciencia Ficción
+      responses:
+        '200':
+          description: Categoría actualizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoriaResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    delete:
+      tags: [Categorias]
+      summary: Eliminar una categoría
+      description: Requiere rol `ADMIN`.
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '204':
+          description: Categoría eliminada
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  # ─── LIBRO-CATEGORIAS ────────────────────────────────────────────────────────
+
+  /libro-categorias/libro/{libroId}:
+    get:
+      tags: [LibroCategorias]
+      summary: Obtener categorías de un libro
+      description: Requiere rol `USER` o `ADMIN`.
+      parameters:
+        - name: libroId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+          description: ID del libro
+      responses:
+        '200':
+          description: Lista de asociaciones
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LibroCategoriaResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /libro-categorias/categoria/{categoriaId}:
+    get:
+      tags: [LibroCategorias]
+      summary: Obtener libros de una categoría
+      description: Requiere rol `USER` o `ADMIN`.
+      parameters:
+        - name: categoriaId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+          description: ID de la categoría
+      responses:
+        '200':
+          description: Lista de asociaciones
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LibroCategoriaResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /libro-categorias:
+    post:
+      tags: [LibroCategorias]
+      summary: Asociar libro con categoría
+      description: Requiere rol `ADMIN`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LibroCategoriaCreateRequest'
+            example:
+              libroId: 1
+              categoriaId: 2
+              prioridad: 1
+              comentario: Categoría principal
+      responses:
+        '201':
+          description: Asociación creada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LibroCategoriaResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /libro-categorias/{libroId}/{categoriaId}:
+    delete:
+      tags: [LibroCategorias]
+      summary: Eliminar asociación libro-categoría
+      description: Requiere rol `ADMIN`.
+      parameters:
+        - name: libroId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+          description: ID del libro
+        - name: categoriaId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+          description: ID de la categoría
+      responses:
+        '204':
+          description: Asociación eliminada
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  # ─── ROLES ───────────────────────────────────────────────────────────────────
+
+  /roles:
+    get:
+      tags: [Roles]
+      summary: Listar todos los roles
+      description: Requiere rol `ADMIN`.
+      responses:
+        '200':
+          description: Lista de roles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RolResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    post:
+      tags: [Roles]
+      summary: Crear un rol
+      description: Requiere rol `ADMIN`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RolCreateRequest'
+            example:
+              nombre: MODERATOR
+      responses:
+        '201':
+          description: Rol creado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RolResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /roles/{id}:
+    get:
+      tags: [Roles]
+      summary: Obtener rol por ID
+      description: Requiere rol `ADMIN`.
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Rol encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RolResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    put:
+      tags: [Roles]
+      summary: Actualizar un rol
+      description: Requiere rol `ADMIN`.
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RolCreateRequest'
+            example:
+              nombre: MODERATOR
+      responses:
+        '200':
+          description: Rol actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RolResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    delete:
+      tags: [Roles]
+      summary: Eliminar un rol
+      description: Requiere rol `ADMIN`.
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '204':
+          description: Rol eliminado
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  # ─── USUARIO-ROLES ────────────────────────────────────────────────────────────
+
+  /usuario-roles/usuario/{usuarioId}:
+    get:
+      tags: [UsuarioRoles]
+      summary: Obtener roles de un usuario
+      description: Requiere rol `ADMIN`.
+      parameters:
+        - name: usuarioId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+          description: ID del usuario
+      responses:
+        '200':
+          description: Lista de asignaciones
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UsuarioRolResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /usuario-roles/rol/{rolId}:
+    get:
+      tags: [UsuarioRoles]
+      summary: Obtener usuarios con un rol
+      description: Requiere rol `ADMIN`.
+      parameters:
+        - name: rolId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+          description: ID del rol
+      responses:
+        '200':
+          description: Lista de asignaciones
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UsuarioRolResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /usuario-roles:
+    post:
+      tags: [UsuarioRoles]
+      summary: Asignar rol a usuario
+      description: Requiere rol `ADMIN`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UsuarioRolCreateRequest'
+            example:
+              usuarioId: 1
+              rolId: 2
+      responses:
+        '201':
+          description: Rol asignado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsuarioRolResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /usuario-roles/{usuarioId}/{rolId}:
+    delete:
+      tags: [UsuarioRoles]
+      summary: Remover rol de usuario
+      description: Requiere rol `ADMIN`.
+      parameters:
+        - name: usuarioId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+          description: ID del usuario
+        - name: rolId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+          description: ID del rol
+      responses:
+        '204':
+          description: Rol removido
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+# ─── COMPONENTS ────────────────────────────────────────────────────────────────
+
+components:
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    IdPath:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+      description: ID del recurso
+
+  responses:
+    Unauthorized:
+      description: Token ausente o inválido
+    NotFound:
+      description: Recurso no encontrado
+    Forbidden:
+      description: No tienes permisos para este recurso
+
+  schemas:
+
+    # Auth
+    RegisterRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+          example: juan123
+        password:
+          type: string
+          example: secreto123
+
+    LoginRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+          example: juan123
+        password:
+          type: string
+          example: secreto123
+
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          example: eyJhbGciOiJIUzI1NiJ9...
+        username:
+          type: string
+          example: juan123
+        roles:
+          type: array
+          items:
+            type: string
+          example: [ROLE_USER]
+
+    # Autores
+    AutorCreateRequest:
+      type: object
+      required: [nombre]
+      properties:
+        nombre:
+          type: string
+          maxLength: 100
+          example: Gabriel García Márquez
+        nacionalidad:
+          type: string
+          maxLength: 50
+          example: Colombiana
+
+    AutorResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        nombre:
+          type: string
+          example: Gabriel García Márquez
+        nacionalidad:
+          type: string
+          example: Colombiana
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    # Libros
+    LibroCreateRequest:
+      type: object
+      required: [titulo, autorId]
+      properties:
+        titulo:
+          type: string
+          maxLength: 200
+          example: Cien años de soledad
+        anioPublicacion:
+          type: integer
+          example: 1967
+        autorId:
+          type: integer
+          format: int64
+          example: 1
+
+    LibroResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        titulo:
+          type: string
+          example: Cien años de soledad
+        anioPublicacion:
+          type: integer
+          example: 1967
+        autorId:
+          type: integer
+          format: int64
+          example: 1
+        autorNombre:
+          type: string
+          example: Gabriel García Márquez
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    # Detalles
+    DetalleLibroCreateRequest:
+      type: object
+      required: [isbn, libroId]
+      properties:
+        isbn:
+          type: string
+          maxLength: 20
+          example: 978-3-16-148410-0
+        numPaginas:
+          type: integer
+          example: 432
+        idioma:
+          type: string
+          maxLength: 50
+          example: Español
+        libroId:
+          type: integer
+          format: int64
+          example: 1
+
+    DetalleLibroUpdateRequest:
+      type: object
+      properties:
+        isbn:
+          type: string
+          maxLength: 20
+          example: 978-3-16-148410-0
+        numPaginas:
+          type: integer
+          example: 432
+        idioma:
+          type: string
+          maxLength: 50
+          example: Español
+
+    DetalleLibroResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        isbn:
+          type: string
+          example: 978-3-16-148410-0
+        numPaginas:
+          type: integer
+          example: 432
+        idioma:
+          type: string
+          example: Español
+        libroId:
+          type: integer
+          format: int64
+          example: 1
+
+    # Categorias
+    CategoriaCreateRequest:
+      type: object
+      required: [nombre]
+      properties:
+        nombre:
+          type: string
+          maxLength: 100
+          example: Novela
+
+    CategoriaResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        nombre:
+          type: string
+          example: Novela
+
+    # LibroCategorias
+    LibroCategoriaCreateRequest:
+      type: object
+      required: [libroId, categoriaId]
+      properties:
+        libroId:
+          type: integer
+          format: int64
+          example: 1
+        categoriaId:
+          type: integer
+          format: int64
+          example: 2
+        prioridad:
+          type: integer
+          example: 1
+        comentario:
+          type: string
+          maxLength: 255
+          example: Categoría principal
+
+    LibroCategoriaResponse:
+      type: object
+      properties:
+        libroId:
+          type: integer
+          format: int64
+          example: 1
+        libroTitulo:
+          type: string
+          example: Cien años de soledad
+        categoriaId:
+          type: integer
+          format: int64
+          example: 2
+        categoriaNombre:
+          type: string
+          example: Novela
+        prioridad:
+          type: integer
+          example: 1
+        addedAt:
+          type: string
+          format: date-time
+        comentario:
+          type: string
+          example: Categoría principal
+
+    # Roles
+    RolCreateRequest:
+      type: object
+      required: [nombre]
+      properties:
+        nombre:
+          type: string
+          example: ADMIN
+
+    RolResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        nombre:
+          type: string
+          example: ADMIN
+
+    # UsuarioRoles
+    UsuarioRolCreateRequest:
+      type: object
+      required: [usuarioId, rolId]
+      properties:
+        usuarioId:
+          type: integer
+          format: int64
+          example: 1
+        rolId:
+          type: integer
+          format: int64
+          example: 2
+
+    UsuarioRolResponse:
+      type: object
+      properties:
+        usuarioId:
+          type: integer
+          format: int64
+          example: 1
+        username:
+          type: string
+          example: juan123
+        rolId:
+          type: integer
+          format: int64
+          example: 2
+        rolNombre:
+          type: string
+          example: ADMIN

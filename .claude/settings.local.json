@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(for dto:*)",
+      "Bash(./mvnw compile:*)",
+      "Bash(lsof -ti:8080)",
+      "Bash(lsof -ti:8080 | xargs kill -9 2>/dev/null\necho \"killed\")",
+      "Bash(lsof -ti:8080 | xargs kill -9 2>/dev/null; echo \"done\")"
+    ]
+  }
+}
